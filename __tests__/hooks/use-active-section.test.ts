@@ -1,50 +1,84 @@
-import { renderHook, act } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { useActiveSection } from "@/hooks/use-active-section";
+
+// ---- TYPES ----
+
+type ObserverCallback = IntersectionObserverCallback;
 
 // ---- MOCK INTERSECTION OBSERVER ----
 
-let observeMock: any;
-let disconnectMock: any;
-let callbackRef: any;
+let observeMock: ReturnType<typeof vi.fn>;
+let disconnectMock: ReturnType<typeof vi.fn>;
+let callbackRef: ObserverCallback;
 
-class MockIntersectionObserver {
-  constructor(callback: any) {
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root: Element | Document | null = null;
+  readonly rootMargin: string = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+
+  constructor(callback: IntersectionObserverCallback) {
     callbackRef = callback;
     observeMock = vi.fn();
     disconnectMock = vi.fn();
   }
 
-  observe = (element: Element) => {
-    observeMock(element);
+  observe = (element: Element): void => {
+    (observeMock as (el: Element) => void)(element);
   };
 
-  disconnect = () => {
-    disconnectMock();
+  unobserve = (_element: Element): void => {};
+
+  disconnect = (): void => {
+    (disconnectMock as () => void)();
   };
+
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
 }
 
-vi.stubGlobal("IntersectionObserver", MockIntersectionObserver as any);
+vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
 
 // ---- HELPERS ----
 
-const createSection = (id: string) => {
+const createSection = (id: string): HTMLElement => {
   const el = document.createElement("div");
   el.id = id;
 
-  // mock getBoundingClientRect (used in hook)
-  el.getBoundingClientRect = vi.fn(() => ({
-    top: 100,
-    height: 200,
-  })) as any;
+  // Properly typed mock for DOMRect
+  el.getBoundingClientRect = vi.fn(
+    (): DOMRect => ({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 200,
+      top: 100,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      toJSON: () => {},
+    })
+  );
 
   document.body.appendChild(el);
   return el;
 };
 
-const triggerIntersection = (entries: any[]) => {
+const triggerIntersection = (entries: Partial<IntersectionObserverEntry>[]) => {
+  const fullEntries: IntersectionObserverEntry[] = entries.map((entry) => ({
+    time: 0,
+    rootBounds: null,
+    boundingClientRect: {} as DOMRectReadOnly,
+    intersectionRect: {} as DOMRectReadOnly,
+    intersectionRatio: entry.isIntersecting ? 1 : 0,
+    target: entry.target as Element,
+    isIntersecting: Boolean(entry.isIntersecting),
+  }));
+
   act(() => {
-    callbackRef(entries);
+    callbackRef(fullEntries, {} as IntersectionObserver);
   });
 };
 
@@ -84,7 +118,7 @@ describe("useActiveSection", () => {
 
     triggerIntersection([
       {
-        target: document.getElementById("features"),
+        target: document.getElementById("features")!,
         isIntersecting: true,
       },
     ]);
@@ -102,7 +136,7 @@ describe("useActiveSection", () => {
     // first section visible
     triggerIntersection([
       {
-        target: document.getElementById("features"),
+        target: document.getElementById("features")!,
         isIntersecting: true,
       },
     ]);
@@ -112,11 +146,11 @@ describe("useActiveSection", () => {
     // switch visibility
     triggerIntersection([
       {
-        target: document.getElementById("features"),
+        target: document.getElementById("features")!,
         isIntersecting: false,
       },
       {
-        target: document.getElementById("ecosystem"),
+        target: document.getElementById("ecosystem")!,
         isIntersecting: true,
       },
     ]);
@@ -132,7 +166,7 @@ describe("useActiveSection", () => {
 
     triggerIntersection([
       {
-        target: document.getElementById("features"),
+        target: document.getElementById("features")!,
         isIntersecting: false,
       },
     ]);
