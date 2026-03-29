@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 // The validation schema
 const waitlistSchema = z.object({
@@ -34,6 +35,17 @@ export function WaitlistModal() {
   // States: idle, loading, success, error
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+
+  // Fetch CSRF token when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetch("/api/csrf")
+        .then((res) => res.json())
+        .then((data) => setCsrfToken(data.token))
+        .catch((err) => console.error("Failed to fetch CSRF token:", err));
+    }
+  }, [isOpen]);
 
   const {
     register,
@@ -52,37 +64,41 @@ export function WaitlistModal() {
     setStatus("loading");
     setErrorMessage("");
 
-    const apiUrl = process.env.NEXT_PUBLIC_WAITLIST_API_URL;
-
     try {
-      if (!apiUrl) {
-        // Demo mode fallback
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        handleSuccess();
-      } else {
-        // Real API call
-        const response = await fetch(apiUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(values),
-        });
+      // Local API call that handles CSRF and forwarding/demo mode
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken || "",
+        },
+        body: JSON.stringify(values),
+      });
 
-        if (!response.ok) {
-          throw new Error("Failed to join waitlist. Please try again.");
-        }
-
-        handleSuccess();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to join waitlist. Please try again.");
       }
+
+      handleSuccess();
     } catch (error) {
       setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "An unexpected error occurred");
+      const message = error instanceof Error ? error.message : "An unexpected error occurred";
+      setErrorMessage(message);
+      toast({
+        variant: "destructive",
+        title: "Something went wrong",
+        description: message,
+      });
     }
   };
 
   const handleSuccess = () => {
     setStatus("success");
+    toast({
+      title: "You're on the list!",
+      description: "Keep an eye on your inbox. We'll be in touch soon.",
+    });
     // Reset form and close modal after delay
     setTimeout(() => {
       reset();
@@ -150,6 +166,8 @@ export function WaitlistModal() {
                   placeholder="jane@example.com"
                   className={`bg-background/50 border-white/10 focus-visible:ring-primary ${errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   disabled={status === "loading"}
+                  autoComplete="email"
+                  inputMode="email"
                   {...register("email")}
                 />
                 {errors.email && (
