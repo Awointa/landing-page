@@ -4,8 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 describe("useIsMobile", () => {
-  const MOBILE_BREAKPOINT = 768;
-
   beforeEach(() => {
     // Mock window.innerWidth
     Object.defineProperty(window, "innerWidth", {
@@ -55,9 +53,9 @@ describe("useIsMobile", () => {
 
   it("should update when window is resized", () => {
     Object.defineProperty(window, "innerWidth", { value: 1024, writable: true });
-    
+
     let changeCallback: () => void = () => {};
-    
+
     // Mock matchMedia to capture the change callback
     (window.matchMedia as any).mockImplementation((query: string) => ({
       matches: false,
@@ -89,7 +87,7 @@ describe("useIsMobile", () => {
 
   it("should clean up event listener on unmount", () => {
     const removeEventListenerMock = vi.fn();
-    
+
     (window.matchMedia as any).mockImplementation((query: string) => ({
       matches: false,
       media: query,
