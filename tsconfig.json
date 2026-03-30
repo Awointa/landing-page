@@ -31,6 +31,8 @@
   ],
   "exclude": [
     "node_modules",
+    "e2e",
+    "playwright.config.ts",
     "components/ui/accordion.tsx",
     "components/ui/alert-dialog.tsx",
     "components/ui/aspect-ratio.tsx",
@@ -43,7 +45,6 @@
     "components/ui/collapsible.tsx",
     "components/ui/command.tsx",
     "components/ui/context-menu.tsx",
-    "components/ui/dialog.tsx",
     "components/ui/drawer.tsx",
     "components/ui/dropdown-menu.tsx",
     "components/ui/field.tsx",
@@ -51,7 +52,6 @@
     "components/ui/hover-card.tsx",
     "components/ui/input-otp.tsx",
     "components/ui/item.tsx",
-    "components/ui/label.tsx",
     "components/ui/menubar.tsx",
     "components/ui/navigation-menu.tsx",
     "components/ui/popover.tsx",
@@ -66,12 +66,8 @@
     "components/ui/sonner.tsx",
     "components/ui/switch.tsx",
     "components/ui/tabs.tsx",
-    "components/ui/toast.tsx",
-    "components/ui/toaster.tsx",
     "components/ui/toggle.tsx",
     "components/ui/toggle-group.tsx",
-    "components/ui/tooltip.tsx",
-    "components/ui/use-toast.ts",
-    "hooks/use-toast.ts"
+    "components/ui/tooltip.tsx"
   ]
 }
